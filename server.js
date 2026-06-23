@@ -9,13 +9,12 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('.')); // Serve index.html from root
 
 let leads = [];
 
 app.post('/api/save', (req, res) => {
-  const { title, subreddit, url, snippet } = req.body;
-  leads.push({ title, subreddit, url, snippet, timestamp: new Date() });
+  leads.push({ ...req.body, timestamp: new Date() });
   res.json({ success: true });
 });
 
@@ -38,4 +37,4 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`Running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 LeadFinder running on port ${PORT}`));
