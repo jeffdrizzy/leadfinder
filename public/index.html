@@ -4,83 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LeadFinder</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: system-ui, sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .logo { font-size: 48px; font-weight: 700; background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
+        input { width: 100%; padding: 18px; background: #1e2937; border: 2px solid #475569; border-radius: 16px; color: white; font-size: 17px; }
+        button { padding: 16px 28px; font-size: 16px; font-weight: 600; border-radius: 16px; cursor: pointer; margin: 5px; }
+        .btn-primary { background: linear-gradient(90deg, #3b82f6, #6366f1); color: white; border: none; }
+        .lead { background: #1e2937; padding: 20px; margin: 15px 0; border-radius: 20px; border-left: 5px solid #60a5fa; }
     </style>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen">
-    <div class="max-w-4xl mx-auto p-6">
-        <div class="text-center mb-10">
-            <div class="text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">LeadFinder</div>
-            <p class="text-xl text-zinc-400 mt-2">Premium Reddit Lead Generator</p>
-        </div>
+<body>
+    <div class="container">
+        <div class="logo">LeadFinder</div>
+        <h1 class="text-center text-3xl font-semibold mt-2 mb-8">Premium Reddit Lead Generator</h1>
 
-        <div class="flex gap-3 mb-8">
-            <input id="keyword" type="text" placeholder="plumber OR electrician" value="plumber" 
-                 class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-blue-500">
-            <button onclick="searchLeads()" 
-                 class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 px-8 py-4 rounded-2xl font-semibold text-lg">🔍 Search</button>
-        </div>
+        <input type="text" id="keyword" placeholder="plumber OR electrician" value="plumber" class="mb-6">
+        <button onclick="searchLeads()" class="btn-primary">🔍 Search Leads</button>
+        <button onclick="loadSavedLeads()" class="bg-zinc-800">📂 Saved Leads</button>
+        <button onclick="exportCSV()" class="bg-zinc-800">📤 Export CSV</button>
 
-        <div class="flex gap-3 mb-8">
-            <button onclick="loadSavedLeads()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 px-6 py-4 rounded-2xl font-medium">📂 Saved Leads</button>
-            <button onclick="exportCSV()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 px-6 py-4 rounded-2xl font-medium">📤 Export CSV</button>
-        </div>
-
-        <div id="results" class="space-y-4"></div>
-        <div id="saved" class="space-y-4 mt-8"></div>
+        <div id="results" class="mt-8"></div>
+        <div id="saved" class="mt-8"></div>
     </div>
 
     <script>
         async function searchLeads() {
             const q = document.getElementById('keyword').value.trim();
             const results = document.getElementById('results');
-            results.innerHTML = '<p class="text-center text-zinc-400">Searching high-intent leads...</p>';
+            results.innerHTML = '<p class="text-center">Searching...</p>';
             try {
                 const res = await fetch('/api/search?q=' + encodeURIComponent(q));
                 const posts = await res.json();
                 let html = '';
                 posts.forEach(p => {
-                    html += `
-                        <div class="bg-zinc-900 p-6 rounded-3xl border border-zinc-800">
-                            <div class="font-semibold text-lg">${p.title}</div>
-                            <div class="text-blue-400 text-sm mt-1">r/\( {p.subreddit} • <a href=" \){p.url}" target="_blank" class="hover:underline">View</a></div>
-                            <p class="text-zinc-400 mt-3 text-sm">${p.snippet}</p>
-                            <button onclick="saveLead('\( {p.title.replace(/'/g,"\\'")}', ' \){p.subreddit}', '\( {p.url}', ' \){p.snippet.replace(/'/g,"\\'")}')" 
-                             class="mt-4 bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-2xl text-sm font-medium">Save Lead</button>
-                        </div>`;
+                    html += `<div class="lead"><strong>\( {p.title}</strong><br><span class="text-blue-400">r/ \){p.subreddit}</span> • <a href="\( {p.url}" target="_blank">View</a><br><small> \){p.snippet}</small><br><button onclick="saveLead('\( {p.title.replace(/'/g,"\\'")}', ' \){p.subreddit}', '\( {p.url}', ' \){p.snippet.replace(/'/g,"\\'")}')" class="mt-4 bg-emerald-600 px-6 py-2 rounded-xl">Save Lead</button></div>`;
                 });
-                results.innerHTML = html || '<p class="text-center">No results found.</p>';
+                results.innerHTML = html;
             } catch(e) {
-                results.innerHTML = '<p class="text-red-400 text-center">Connection error. Is the server running?</p>';
+                results.innerHTML = '<p class="text-red-400">Error. Server running?</p>';
             }
         }
 
         async function saveLead(title, subreddit, url, snippet) {
-            await fetch('/api/save', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({title, subreddit, url, snippet})
-            });
-            alert('✅ Lead Saved!');
+            await fetch('/api/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, subreddit, url, snippet}) });
+            alert('Saved!');
         }
 
         async function loadSavedLeads() {
             const res = await fetch('/api/leads');
             const leads = await res.json();
             let html = '<h2 class="text-2xl font-semibold mb-4">Saved Leads</h2>';
-            leads.forEach(l => {
-                html += `<div class="bg-zinc-900 p-6 rounded-3xl border border-zinc-800"><div class="font-semibold">\( {l.title}</div><div class="text-zinc-400">r/ \){l.subreddit}</div></div>`;
-            });
+            leads.forEach(l => html += `<div class="lead"><strong>\( {l.title}</strong><br>r/ \){l.subreddit}</div>`);
             document.getElementById('saved').innerHTML = html;
         }
 
         async function exportCSV() {
             const res = await fetch('/api/leads');
             const leads = await res.json();
-            let csv = 'Title,Subreddit,URL,Snippet,Timestamp\n';
-            leads.forEach(l => csv += `"\( {l.title}"," \){l.subreddit}","\( {l.url}"," \){l.snippet}","${l.timestamp}"\n`);
+            let csv = 'Title,Subreddit,URL,Snippet\n';
+            leads.forEach(l => csv += `"\( {l.title}"," \){l.subreddit}","\( {l.url}"," \){l.snippet}"\n`);
             const blob = new Blob([csv], {type: 'text/csv'});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
