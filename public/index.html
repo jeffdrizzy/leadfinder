@@ -5,64 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LeadFinder</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', system-ui, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
-        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-        .logo { font-size: 48px; font-weight: 700; background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
-        input { width: 100%; padding: 18px; background: #1e2937; border: 2px solid #475569; border-radius: 16px; color: white; font-size: 17px; }
-        button { padding: 16px 28px; font-size: 16px; font-weight: 600; border-radius: 16px; cursor: pointer; margin: 5px; }
-        .btn-primary { background: linear-gradient(90deg, #3b82f6, #6366f1); color: white; border: none; }
-        .lead { background: #1e2937; padding: 20px; margin: 15px 0; border-radius: 20px; border-left: 5px solid #60a5fa; }
+        body { font-family: system-ui, sans-serif; background: #0f172a; color: white; padding: 20px; }
+        input { width: 100%; padding: 15px; margin: 10px 0; background: #1e2937; border: 1px solid #475569; border-radius: 8px; color: white; }
+        button { padding: 15px; margin: 5px; background: #3b82f6; color: white; border: none; border-radius: 8px; }
+        .lead { background: #1e2937; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .error { color: #f87171; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">LeadFinder</div>
-        <h1 class="text-center text-3xl font-semibold mt-2 mb-8">Premium Reddit Lead Generator</h1>
+    <h1>LeadFinder</h1>
+    <input type="text" id="keyword" value="" placeholder="Search keyword">
+    <button onclick="searchLeads()">Search</button>
+    <button onclick="loadSavedLeads()">Saved</button>
+    <button onclick="exportCSV()">Export CSV</button>
 
-        <input type="text" id="keyword" placeholder="plumber OR electrician" value="plumber" class="mb-6">
-        <button onclick="searchLeads()" class="btn-primary">🔍 Search Leads</button>
-        <button onclick="loadSavedLeads()" class="bg-zinc-800">📂 Saved Leads</button>
-        <button onclick="exportCSV()" class="bg-zinc-800">📤 Export CSV</button>
-
-        <div id="results" class="mt-8"></div>
-        <div id="saved" class="mt-8"></div>
-    </div>
+    <div id="results"></div>
+    <div id="saved"></div>
 
     <script>
+        async function safeFetch(url, options = {}) {
+            try {
+                const res = await fetch(url, options);
+                if (!res.ok) throw new Error('Server error');
+                return await res.json();
+            } catch(e) {
+                console.error(e);
+                return null;
+            }
+        }
+
         async function searchLeads() {
             const q = document.getElementById('keyword').value.trim();
             const results = document.getElementById('results');
-            results.innerHTML = '<p class="text-center">Searching...</p>';
-            try {
-                const res = await fetch('/api/search?q=' + encodeURIComponent(q));
-                const posts = await res.json();
+            results.innerHTML = '<p>Searching...</p>';
+            const data = await safeFetch('/api/search?q=' + encodeURIComponent(q));
+            if (data) {
                 let html = '';
-                posts.forEach(p => {
-                    html += `<div class="lead"><strong>\( {p.title}</strong><br><span class="text-blue-400">r/ \){p.subreddit}</span> • <a href="\( {p.url}" target="_blank">View</a><br><small> \){p.snippet}</small><br><button onclick="saveLead('\( {p.title.replace(/'/g,"\\'")}', ' \){p.subreddit}', '\( {p.url}', ' \){p.snippet.replace(/'/g,"\\'")}')" class="mt-4 bg-emerald-600 px-6 py-2 rounded-xl">Save Lead</button></div>`;
+                data.forEach(p => {
+                    html += `<div class="lead"><b>\( {p.title}</b><br>r/ \){p.subreddit} - <a href="\( {p.url}">Link</a><br><small> \){p.snippet}</small><br><button onclick="saveLead('\( {p.title.replace(/'/g,"\\'")}', ' \){p.subreddit}', '\( {p.url}', ' \){p.snippet.replace(/'/g,"\\'")}')">Save</button></div>`;
                 });
-                results.innerHTML = html;
-            } catch(e) {
-                results.innerHTML = '<p class="text-red-400">Error. Server running?</p>';
+                results.innerHTML = html || '<p>No results</p>';
+            } else {
+                results.innerHTML = '<p class="error">Search failed. Try again.</p>';
             }
         }
 
         async function saveLead(title, subreddit, url, snippet) {
-            await fetch('/api/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, subreddit, url, snippet}) });
-            alert('Saved!');
+            const result = await safeFetch('/api/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title, subreddit, url, snippet})
+            });
+            if (result) alert('Saved!');
+            else alert('Save failed');
         }
 
         async function loadSavedLeads() {
-            const res = await fetch('/api/leads');
-            const leads = await res.json();
-            let html = '<h2 class="text-2xl font-semibold mb-4">Saved Leads</h2>';
-            leads.forEach(l => html += `<div class="lead"><strong>\( {l.title}</strong><br>r/ \){l.subreddit}</div>`);
+            const leads = await safeFetch('/api/leads');
+            let html = '<h2>Saved Leads</h2>';
+            if (leads) {
+                leads.forEach(l => html += `<div class="lead"><b>\( {l.title}</b><br>r/ \){l.subreddit}</div>`);
+            }
             document.getElementById('saved').innerHTML = html;
         }
 
         async function exportCSV() {
-            const res = await fetch('/api/leads');
-            const leads = await res.json();
+            const leads = await safeFetch('/api/leads');
+            if (!leads) return alert('No leads');
             let csv = 'Title,Subreddit,URL,Snippet\n';
             leads.forEach(l => csv += `"\( {l.title}"," \){l.subreddit}","\( {l.url}"," \){l.snippet}"\n`);
             const blob = new Blob([csv], {type: 'text/csv'});
