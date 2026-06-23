@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LeadFinder</title>
     <style>
-        body { font-family: system-ui, sans-serif; background: #0f172a; color: white; padding: 20px; max-width: 800px; margin: auto; }
+        body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; max-width: 800px; margin: auto; }
         input { width: 100%; padding: 15px; margin: 10px 0; background: #1e2937; border: 1px solid #475569; border-radius: 8px; color: white; font-size: 17px; }
-        button { padding: 15px 25px; margin: 5px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; }
+        button { padding: 15px 25px; margin: 5px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
         .lead { background: #1e2937; padding: 15px; margin: 10px 0; border-radius: 8px; }
     </style>
 </head>
@@ -27,17 +27,17 @@
         async function searchLeads() {
             const q = document.getElementById('keyword').value.trim();
             const results = document.getElementById('results');
-            results.innerHTML = '<p>Searching Reddit...</p>';
+            results.innerHTML = '<p>Searching...</p>';
             try {
                 const res = await fetch('/api/search?q=' + encodeURIComponent(q));
                 const posts = await res.json();
                 let html = '';
                 posts.forEach(p => {
-                    html += `<div class="lead"><b>\( {p.title}</b><br>r/ \){p.subreddit} - <a href="\( {p.url}" target="_blank">View</a><br><small> \){p.snippet}</small><br><button onclick="saveLead('\( {p.title.replace(/'/g,"\\'")}', ' \){p.subreddit}', '\( {p.url}', ' \){p.snippet.replace(/'/g,"\\'")}')">Save Lead</button></div>`;
+                    html += `<div class="lead"><b>\( {p.title}</b><br>r/ \){p.subreddit} - <a href="\( {p.url}" target="_blank">View</a><br><small> \){p.snippet}</small><br><button onclick="saveLead('\( {p.title.replace(/'/g,"\\'")}', ' \){p.subreddit}', '\( {p.url}', ' \){p.snippet.replace(/'/g,"\\'")}')">Save</button></div>`;
                 });
                 results.innerHTML = html || '<p>No results.</p>';
             } catch(e) {
-                results.innerHTML = '<p class="error">Error. Try again.</p>';
+                results.innerHTML = '<p>Error. Try again.</p>';
             }
         }
 
